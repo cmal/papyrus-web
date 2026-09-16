@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
+import { useProjectStore } from "@/store/project";
+import { ProjectScopePicker } from "@/components/ui/project-scope-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +39,9 @@ export default function RulesPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newCondition, setNewCondition] = useState("");
   const [newAction, setNewAction] = useState("");
+  const [projectScope, setProjectScope] = useState("current");
   const [selected, setSelected] = useState<Rule | null>(null);
+  const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
     queryKey: ["rules.list"],
@@ -49,7 +53,7 @@ export default function RulesPage() {
 
   const createMutation = useMutation({
     mutationFn: (input: any) => client!.call("rules.create", input),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules.list"] }); setCreateOpen(false); setNewTitle(""); setNewCondition(""); setNewAction(""); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules.list"] }); setCreateOpen(false); setNewTitle(""); setNewCondition(""); setNewAction(""); setProjectScope("current"); },
   });
 
   const removeMutation = useMutation({
@@ -60,7 +64,15 @@ export default function RulesPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    createMutation.mutate({ title: newTitle, condition: newCondition || undefined, action: newAction || undefined });
+    const scope = projectScope;
+    createMutation.mutate({ title: newTitle, condition: newCondition || undefined, action: newAction || undefined }, {
+      onSuccess: (result: any) => {
+        const id = result?.id || result;
+        if (id && scope === "current" && currentProject) {
+          client!.call("rules.add_project", { id, project: currentProject.name }).catch(() => {});
+        }
+      },
+    });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -82,6 +94,7 @@ export default function RulesPage() {
               <div className="space-y-2"><Label>Title</Label><Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} autoFocus /></div>
               <div className="space-y-2"><Label>Condition</Label><Textarea value={newCondition} onChange={(e) => setNewCondition(e.target.value)} rows={2} placeholder="When this rule applies..." /></div>
               <div className="space-y-2"><Label>Action</Label><Textarea value={newAction} onChange={(e) => setNewAction(e.target.value)} rows={3} placeholder="What the rule enforces..." /></div>
+              <ProjectScopePicker value={projectScope} onChange={setProjectScope} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={!newTitle.trim()}>Create</Button>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
+import { useProjectStore } from "@/store/project";
+import { ProjectScopePicker } from "@/components/ui/project-scope-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +37,9 @@ export default function DocsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [projectScope, setProjectScope] = useState("current");
   const [selected, setSelected] = useState<Doc | null>(null);
+  const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
     queryKey: ["docs.list"],
@@ -47,7 +51,7 @@ export default function DocsPage() {
 
   const createMutation = useMutation({
     mutationFn: (input: any) => client!.call("docs.create", input),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["docs.list"] }); setCreateOpen(false); setNewTitle(""); setNewBody(""); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["docs.list"] }); setCreateOpen(false); setNewTitle(""); setNewBody(""); setProjectScope("current"); },
   });
 
   const removeMutation = useMutation({
@@ -58,7 +62,15 @@ export default function DocsPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    createMutation.mutate({ title: newTitle, body: newBody || undefined });
+    const scope = projectScope;
+    createMutation.mutate({ title: newTitle, body: newBody || undefined }, {
+      onSuccess: (result: any) => {
+        const id = result?.id || result;
+        if (id && scope === "current" && currentProject) {
+          client!.call("docs.add_project", { id, project: currentProject.name }).catch(() => {});
+        }
+      },
+    });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -79,6 +91,7 @@ export default function DocsPage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2"><Label>Title</Label><Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} autoFocus /></div>
               <div className="space-y-2"><Label>Body</Label><Textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={6} /></div>
+              <ProjectScopePicker value={projectScope} onChange={setProjectScope} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={!newTitle.trim()}>Create</Button>

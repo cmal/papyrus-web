@@ -1,22 +1,23 @@
 import { useConnectionStore } from "@/store/connection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProjectSelector } from "@/components/layout/ProjectSelector";
+import { Separator } from "@/components/ui/separator";
 import { RefreshCw, Power } from "lucide-react";
 
 export function Header() {
   const { health, config, checkHealth, disconnect } = useConnectionStore();
 
   return (
-    <header className="flex h-14 items-center justify-between border-b px-6">
+    <header className="flex h-14 items-center justify-between border-b px-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold">Papyrus Web</h1>
+        <h1 className="text-lg font-semibold">Papyrus</h1>
+        <Separator orientation="vertical" className="h-6" />
+        <ProjectSelector />
         {health && (
           <Badge variant={health.ok ? "success" : "destructive"}>
             {health.ok ? `v${health.version}` : "disconnected"}
           </Badge>
-        )}
-        {health?.schema.state === "migrationRequired" && (
-          <Badge variant="warning">Migration Required</Badge>
         )}
       </div>
       <div className="flex items-center gap-2">

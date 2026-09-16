@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
+import { useProjectStore } from "@/store/project";
+import { ProjectScopePicker } from "@/components/ui/project-scope-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,7 +57,9 @@ export default function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [projectScope, setProjectScope] = useState("current");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tasks.list"],
@@ -72,6 +76,7 @@ export default function TasksPage() {
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
+      setProjectScope("current");
     },
   });
 
@@ -91,7 +96,13 @@ export default function TasksPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    createMutation.mutate({ title: newTitle, body: newBody || undefined });
+    const input: any = { title: newTitle, body: newBody || undefined };
+    if (projectScope === "current" && currentProject) {
+      input.projectRoot = currentProject.root;
+    } else if (projectScope !== "global" && projectScope !== "current") {
+      input.projectRoot = projectScope; // treat as project root directly
+    }
+    createMutation.mutate(input);
   };
 
   const lifecycleAction = (op: string, task: Task) => {
@@ -189,6 +200,7 @@ export default function TasksPage() {
                   <Label>Body</Label>
                   <Textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} placeholder="Description (optional)" rows={4} />
                 </div>
+                <ProjectScopePicker value={projectScope} onChange={setProjectScope} />
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                   <Button type="submit" disabled={createMutation.isPending || !newTitle.trim()}>

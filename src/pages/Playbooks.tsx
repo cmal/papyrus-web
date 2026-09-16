@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
+import { useProjectStore } from "@/store/project";
+import { ProjectScopePicker } from "@/components/ui/project-scope-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,8 +40,10 @@ export default function PlaybooksPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newTrigger, setNewTrigger] = useState("");
   const [newSteps, setNewSteps] = useState("");
+  const [projectScope, setProjectScope] = useState("current");
   const [invokeArgs, setInvokeArgs] = useState("{}");
   const [invokeResult, setInvokeResult] = useState<any>(null);
+  const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
     queryKey: ["playbooks.list"],
@@ -51,7 +55,7 @@ export default function PlaybooksPage() {
 
   const createMutation = useMutation({
     mutationFn: (input: any) => client!.call("playbooks.create", input),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["playbooks.list"] }); setCreateOpen(false); setNewTitle(""); setNewTrigger(""); setNewSteps(""); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["playbooks.list"] }); setCreateOpen(false); setNewTitle(""); setNewTrigger(""); setNewSteps(""); setProjectScope("current"); },
   });
 
   const invokeMutation = useMutation({
@@ -71,7 +75,15 @@ export default function PlaybooksPage() {
     if (newSteps.trim()) {
       try { steps = JSON.parse(newSteps); } catch { steps = newSteps; }
     }
-    createMutation.mutate({ title: newTitle, trigger: newTrigger || undefined, steps });
+    const scope = projectScope;
+    createMutation.mutate({ title: newTitle, trigger: newTrigger || undefined, steps }, {
+      onSuccess: (result: any) => {
+        const id = result?.id || result;
+        if (id && scope === "current" && currentProject) {
+          client!.call("playbooks.add_project", { id, project: currentProject.name }).catch(() => {});
+        }
+      },
+    });
   };
 
   const handleInvoke = (e: React.FormEvent) => {
@@ -104,6 +116,7 @@ export default function PlaybooksPage() {
                 <Label>Steps (JSON array or text)</Label>
                 <Textarea value={newSteps} onChange={(e) => setNewSteps(e.target.value)} rows={6} placeholder='["Step 1", "Step 2"] or {"kind":"doc",...}' />
               </div>
+              <ProjectScopePicker value={projectScope} onChange={setProjectScope} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={!newTitle.trim()}>Create</Button>

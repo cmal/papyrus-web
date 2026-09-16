@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
+import { useProjectStore } from "@/store/project";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, StickyNote, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, StickyNote, CheckCircle2, FolderGit2, Globe } from "lucide-react";
 
 interface Note {
   id: string;
@@ -30,6 +31,7 @@ export default function NotesPage() {
   const client = useConnectionStore((s) => s.client);
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
+  const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
     queryKey: ["notes.list"],
@@ -40,7 +42,7 @@ export default function NotesPage() {
   const notes = extractList(data);
 
   const captureMutation = useMutation({
-    mutationFn: (content: string) => client!.call("notes.capture", { content }),
+    mutationFn: (input: any) => client!.call("notes.capture", input),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["notes.list"] }); setNewNote(""); },
   });
 
@@ -57,7 +59,9 @@ export default function NotesPage() {
   const handleCapture = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    captureMutation.mutate(newNote);
+    const input: any = { content: newNote };
+    if (currentProject) input.projectRoot = currentProject.root;
+    captureMutation.mutate(input);
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -73,11 +77,22 @@ export default function NotesPage() {
           <Badge variant="secondary">{notes.length}</Badge>
           <Badge variant="info">{openNotes.length} open</Badge>
         </div>
-        <form onSubmit={handleCapture} className="mt-3 flex gap-2">
+        <form onSubmit={handleCapture} className="mt-3 flex items-center gap-2">
+          {currentProject ? (
+            <Badge variant="info" className="shrink-0 gap-1 border-2 border-primary/30 bg-primary/10 px-2.5 py-1.5 text-primary">
+              <FolderGit2 size={12} />
+              <span className="max-w-[100px] truncate">{currentProject.name}</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="shrink-0 gap-1 px-2.5 py-1.5 text-muted-foreground">
+              <Globe size={12} />
+              Global
+            </Badge>
+          )}
           <Input
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Capture a thought, idea, or reminder..."
+            placeholder={currentProject ? `Capture to "${currentProject.name}"...` : "Capture a thought, idea, or reminder..."}
             className="flex-1"
           />
           <Button type="submit" size="sm" disabled={!newNote.trim() || captureMutation.isPending}>
