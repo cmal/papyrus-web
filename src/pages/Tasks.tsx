@@ -174,6 +174,33 @@ export default function TasksPage() {
     ],
   };
 
+  // Task detail with edges (for dependency management)
+  const { data: taskDetail } = useQuery<{ edges?: any[] }>({
+    queryKey: ["tasks.show", selectedTask?.id],
+    queryFn: () => client!.call("tasks.show", { id: selectedTask!.id }),
+    enabled: !!client && !!selectedTask,
+  });
+
+  const edges: any[] = taskDetail?.edges || [];
+  const prerequisiteIds = edges.filter((e) => e.relation === "depends_on" && e.from === selectedTask?.id).map((e) => e.to);
+  const blockingIds = edges.filter((e) => e.relation === "depends_on" && e.to === selectedTask?.id).map((e) => e.from);
+  const taskById = new Map(tasks.map((t) => [t.id, t]));
+
+  const [addingDep, setAddingDep] = useState(false);
+  const [newDepId, setNewDepId] = useState("");
+
+  const dependMutation = useMutation({
+    mutationFn: ({ id, dependency_id }: { id: string; dependency_id: string }) =>
+      client!.call("tasks.depend", { id, dependency_id, actor: "user", source: "web" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks.show"] }); queryClient.invalidateQueries({ queryKey: ["tasks.plan"] }); setAddingDep(false); setNewDepId(""); },
+  });
+
+  const undependMutation = useMutation({
+    mutationFn: ({ id, dependency_id }: { id: string; dependency_id: string }) =>
+      client!.call("tasks.undepend", { id, dependency_id, actor: "user", source: "web" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tasks.show"] }); queryClient.invalidateQueries({ queryKey: ["tasks.plan"] }); },
+  });
+
   const renderTaskCard = (task: Task) => (
     <Card
       key={task.id}
@@ -380,6 +407,69 @@ export default function TasksPage() {
                     <div><span className="text-muted-foreground">Project:</span> {selectedTask.projectRoot || "—"}</div>
                     <div><span className="text-muted-foreground">Labels:</span> {selectedTask.labels?.join(", ") || "—"}</div>
                     <div><span className="text-muted-foreground">Created:</span> {selectedTask.createdAt || "—"}</div>
+                  </div>
+
+                  {/* Dependencies */}
+                  <div className="space-y-3 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Dependencies</h4>
+                      {!addingDep && (
+                        <Button size="sm" variant="outline" onClick={() => setAddingDep(true)}>Add prerequisite</Button>
+                      )}
+                    </div>
+                    {addingDep && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={newDepId}
+                          onChange={(e) => setNewDepId(e.target.value)}
+                          className="flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
+                        >
+                          <option value="">Select a task...</option>
+                          {tasks
+                            .filter((t) => t.id !== selectedTask.id && !prerequisiteIds.includes(t.id))
+                            .map((t) => (
+                              <option key={t.id} value={t.id}>{t.title || t.name}</option>
+                            ))}
+                        </select>
+                        <Button size="sm" onClick={() => newDepId && dependMutation.mutate({ id: selectedTask.id, dependency_id: newDepId })} disabled={!newDepId || dependMutation.isPending}>
+                          Add
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setAddingDep(false); setNewDepId(""); }}>Cancel</Button>
+                      </div>
+                    )}
+                    {prerequisiteIds.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Prerequisites (must finish first):</p>
+                        {prerequisiteIds.map((depId) => {
+                          const depTask = taskById.get(depId);
+                          return (
+                            <div key={depId} className="flex items-center justify-between rounded-md bg-muted px-3 py-1.5">
+                              <span className="truncate text-xs">{depTask?.title || depTask?.name || depId}</span>
+                              <div className="flex items-center gap-2">
+                                {depTask && <Badge variant="outline" className="text-[10px]">{STATUS_LABELS[depTask.status] || depTask.status}</Badge>}
+                                <button onClick={() => undependMutation.mutate({ id: selectedTask.id, dependency_id: depId })} className="text-destructive hover:underline text-xs">Remove</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No prerequisites.</p>
+                    )}
+                    {blockingIds.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Blocking ({blockingIds.length} task{blockingIds.length > 1 ? "s" : ""} waiting on this):</p>
+                        {blockingIds.map((blockId) => {
+                          const blockTask = taskById.get(blockId);
+                          return (
+                            <div key={blockId} className="flex items-center justify-between rounded-md bg-muted px-3 py-1.5">
+                              <span className="truncate text-xs">{blockTask?.title || blockTask?.name || blockId}</span>
+                              {blockTask && <Badge variant="outline" className="text-[10px]">{STATUS_LABELS[blockTask.status] || blockTask.status}</Badge>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
