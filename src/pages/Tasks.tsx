@@ -97,14 +97,81 @@ export default function TasksPage() {
     },
   });
 
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editLabels, setEditLabels] = useState("");
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, title, body, labels }: { id: string; title?: string; body?: string; labels?: string[] }) =>
+      client!.call("tasks.update", { id, title, body, labels, actor: "user", source: "web" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks.list"] });
+      setEditing(false);
+    },
+  });
+
+  const startEdit = () => {
+    if (!selectedTask) return;
+    setEditTitle(selectedTask.title || selectedTask.name || "");
+    setEditBody(selectedTask.body || "");
+    setEditLabels(selectedTask.labels?.join(", ") || "");
+    setEditing(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask) return;
+    const labels = editLabels.split(",").map((l) => l.trim()).filter(Boolean);
+    updateMutation.mutate({
+      id: selectedTask.id,
+      title: editTitle.trim() || undefined,
+      body: editBody || undefined,
+      labels: labels.length > 0 ? labels : undefined,
+    });
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !currentProject) return;
     createMutation.mutate({ title: newTitle, body: newBody || undefined, project_root: currentProject.projectRoot });
   };
 
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+
   const lifecycleAction = (op: string, task: Task) => {
-    lifecycleMutation.mutate({ op, id: task.id });
+    setLifecycleError(null);
+    lifecycleMutation.mutate(
+      { op, id: task.id },
+      { onError: (err: any) => setLifecycleError(err?.message || String(err)) },
+    );
+  };
+
+  // Allowed lifecycle actions per status
+  const LIFECYCLE_BUTTONS: Record<string, { op: string; label: string; icon: any }[]> = {
+    "todo": [
+      { op: "tasks.start", label: "Start", icon: Play },
+      { op: "tasks.cancel", label: "Cancel", icon: XCircle },
+    ],
+    "in-progress": [
+      { op: "tasks.submit", label: "Submit", icon: CheckCircle },
+      { op: "tasks.cancel", label: "Cancel", icon: XCircle },
+    ],
+    "review": [
+      { op: "tasks.complete", label: "Complete", icon: CheckCircle },
+      { op: "tasks.reject", label: "Reject", icon: XCircle },
+      { op: "tasks.cancel", label: "Cancel", icon: XCircle },
+    ],
+    "rejected": [
+      { op: "tasks.retry", label: "Retry", icon: RotateCcw },
+      { op: "tasks.cancel", label: "Cancel", icon: XCircle },
+    ],
+    "done": [
+      { op: "tasks.reopen", label: "Reopen", icon: RotateCcw },
+    ],
+    "canceled": [
+      { op: "tasks.reopen", label: "Reopen", icon: RotateCcw },
+    ],
   };
 
   const renderTaskCard = (task: Task) => (
@@ -133,21 +200,11 @@ export default function TasksPage() {
                 <Focus size={14} className="mr-2" /> Focus
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); lifecycleAction("tasks.start", task); }}>
-                <Play size={14} className="mr-2" /> Start
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); lifecycleAction("tasks.complete", task); }}>
-                <CheckCircle size={14} className="mr-2" /> Complete
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); lifecycleAction("tasks.pause", task); }}>
-                <Pause size={14} className="mr-2" /> Pause
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); lifecycleAction("tasks.cancel", task); }}>
-                <XCircle size={14} className="mr-2" /> Cancel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); lifecycleAction("tasks.reopen", task); }}>
-                <RotateCcw size={14} className="mr-2" /> Reopen
-              </DropdownMenuItem>
+              {(LIFECYCLE_BUTTONS[task.status] || []).map(({ op, label, icon: Icon }) => (
+                <DropdownMenuItem key={op} onClick={(e) => { e.stopPropagation(); lifecycleAction(op, task); }}>
+                  <Icon size={14} className="mr-2" /> {label}
+                </DropdownMenuItem>
+              ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); removeMutation.mutate(task.id); }} className="text-destructive">
                 <Trash2 size={14} className="mr-2" /> Remove
@@ -259,43 +316,79 @@ export default function TasksPage() {
       </div>
 
       {/* Task Detail Dialog */}
-      <Dialog open={!!selectedTask} onOpenChange={(o) => !o && setSelectedTask(null)}>
+      <Dialog open={!!selectedTask} onOpenChange={(o) => { if (!o) { setSelectedTask(null); setEditing(false); setLifecycleError(null); } }}>
         <DialogContent className="max-w-2xl">
           {selectedTask && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2">
-                  <DialogTitle>{selectedTask.title || selectedTask.name}</DialogTitle>
-                  <Badge className={STATUS_COLORS[selectedTask.status]}>{STATUS_LABELS[selectedTask.status]}</Badge>
-                </div>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.start", selectedTask)}><Play size={14} className="mr-1" />Start</Button>
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.complete", selectedTask)}><CheckCircle size={14} className="mr-1" />Complete</Button>
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.pause", selectedTask)}><Pause size={14} className="mr-1" />Pause</Button>
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.cancel", selectedTask)}><XCircle size={14} className="mr-1" />Cancel</Button>
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.reopen", selectedTask)}><RotateCcw size={14} className="mr-1" />Reopen</Button>
-                  <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.focus", selectedTask)}><Focus size={14} className="mr-1" />Focus</Button>
-                </div>
-                {selectedTask.body && (
-                  <div className="rounded-md bg-muted p-4">
-                    <p className="whitespace-pre-wrap text-sm">{selectedTask.body}</p>
+            editing ? (
+              <form onSubmit={handleSaveEdit}>
+                <DialogHeader>
+                  <DialogTitle>Edit Task</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Title</Label>
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Task title" />
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">ID:</span> <code className="text-xs">{selectedTask.id}</code></div>
-                  <div><span className="text-muted-foreground">Project:</span> {selectedTask.projectRoot || "—"}</div>
-                  <div><span className="text-muted-foreground">Labels:</span> {selectedTask.labels?.join(", ") || "—"}</div>
-                  <div><span className="text-muted-foreground">Created:</span> {selectedTask.createdAt || "—"}</div>
+                  <div className="space-y-2">
+                    <Label>Body</Label>
+                    <Textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} placeholder="Description (optional)" rows={6} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Labels (comma-separated)</Label>
+                    <Input value={editLabels} onChange={(e) => setEditLabels(e.target.value)} placeholder="label1, label2" />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="destructive" size="sm" onClick={() => removeMutation.mutate(selectedTask.id)}>
-                  <Trash2 size={14} className="mr-1" /> Remove
-                </Button>
-              </DialogFooter>
-            </>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button type="submit" disabled={updateMutation.isPending}>
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            ) : (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DialogTitle>{selectedTask.title || selectedTask.name}</DialogTitle>
+                      <Badge className={STATUS_COLORS[selectedTask.status]}>{STATUS_LABELS[selectedTask.status]}</Badge>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={startEdit}>Edit</Button>
+                  </div>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {(LIFECYCLE_BUTTONS[selectedTask.status] || []).map(({ op, label, icon: Icon }) => (
+                      <Button key={op} size="sm" variant="outline" onClick={() => lifecycleAction(op, selectedTask)} disabled={lifecycleMutation.isPending}>
+                        <Icon size={14} className="mr-1" />{label}
+                      </Button>
+                    ))}
+                    <Button size="sm" variant="outline" onClick={() => lifecycleAction("tasks.focus", selectedTask)} disabled={lifecycleMutation.isPending}>
+                      <Focus size={14} className="mr-1" />Focus
+                    </Button>
+                  </div>
+                  {lifecycleError && (
+                    <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{lifecycleError}</div>
+                  )}
+                  {selectedTask.body && (
+                    <div className="rounded-md bg-muted p-4">
+                      <p className="whitespace-pre-wrap text-sm">{selectedTask.body}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><span className="text-muted-foreground">ID:</span> <code className="text-xs">{selectedTask.id}</code></div>
+                    <div><span className="text-muted-foreground">Project:</span> {selectedTask.projectRoot || "—"}</div>
+                    <div><span className="text-muted-foreground">Labels:</span> {selectedTask.labels?.join(", ") || "—"}</div>
+                    <div><span className="text-muted-foreground">Created:</span> {selectedTask.createdAt || "—"}</div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="destructive" size="sm" onClick={() => removeMutation.mutate(selectedTask.id)}>
+                    <Trash2 size={14} className="mr-1" /> Remove
+                  </Button>
+                </DialogFooter>
+              </>
+            )
           )}
         </DialogContent>
       </Dialog>
