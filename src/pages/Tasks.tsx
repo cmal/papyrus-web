@@ -14,18 +14,25 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Plus, MoreHorizontal, Play, CheckCircle, Pause, XCircle, RotateCcw, Focus, Trash2, Eye, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TASK_STATUSES = ["backlog", "ready", "active", "paused", "submitted", "completed", "rejected", "cancelled"] as const;
+const TASK_STATUSES = ["todo", "in-progress", "review", "rejected", "done", "canceled"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
 
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  "todo": "Todo",
+  "in-progress": "In Progress",
+  "review": "Review",
+  "rejected": "Rejected",
+  "done": "Done",
+  "canceled": "Canceled",
+};
+
 const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: "bg-gray-500/15 text-gray-600 dark:text-gray-400",
-  ready: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-  active: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
-  paused: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
-  submitted: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
-  completed: "bg-green-500/15 text-green-600 dark:text-green-400",
-  rejected: "bg-red-500/15 text-red-600 dark:text-red-400",
-  cancelled: "bg-gray-500/15 text-gray-600 dark:text-gray-400",
+  "todo": "bg-gray-500/15 text-gray-600 dark:text-gray-400",
+  "in-progress": "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+  "review": "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  "rejected": "bg-red-500/15 text-red-600 dark:text-red-400",
+  "done": "bg-green-500/15 text-green-600 dark:text-green-400",
+  "canceled": "bg-gray-500/15 text-gray-600 dark:text-gray-400",
 };
 
 interface Task {
@@ -149,7 +156,7 @@ export default function TasksPage() {
           </DropdownMenu>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-1">
-          <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[task.status])}>{task.status}</Badge>
+          <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[task.status])}>{STATUS_LABELS[task.status]}</Badge>
           {task.focus && <Badge variant="info" className="text-[10px]">focus</Badge>}
           {task.labels?.slice(0, 2).map((l) => (
             <Badge key={l} variant="secondary" className="text-[10px]">{l}</Badge>
@@ -230,7 +237,7 @@ export default function TasksPage() {
               return (
                 <div key={status} className="w-72 shrink-0">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium capitalize">{status}</span>
+                    <span className="text-sm font-medium">{STATUS_LABELS[status]}</span>
                     <Badge variant="outline" className="text-xs">{columnTasks.length}</Badge>
                   </div>
                   <div className="space-y-2">
@@ -259,7 +266,7 @@ export default function TasksPage() {
               <DialogHeader>
                 <div className="flex items-center gap-2">
                   <DialogTitle>{selectedTask.title || selectedTask.name}</DialogTitle>
-                  <Badge className={STATUS_COLORS[selectedTask.status]}>{selectedTask.status}</Badge>
+                  <Badge className={STATUS_COLORS[selectedTask.status]}>{STATUS_LABELS[selectedTask.status]}</Badge>
                 </div>
               </DialogHeader>
               <div className="space-y-4">
