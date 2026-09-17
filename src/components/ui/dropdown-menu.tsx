@@ -9,7 +9,11 @@ const DropdownContext = React.createContext<DropdownContextValue | null>(null);
 
 export function DropdownMenu({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
-  return <DropdownContext.Provider value={{ open, setOpen }}>{children}</DropdownContext.Provider>;
+  return (
+    <DropdownContext.Provider value={{ open, setOpen }}>
+      <div className="relative inline-flex">{children}</div>
+    </DropdownContext.Provider>
+  );
 }
 
 export function DropdownMenuTrigger({ children, asChild, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
