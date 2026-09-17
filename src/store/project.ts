@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 export interface ProjectRef {
   id: string;
   name: string;
-  root: string;
+  projectRoot: string;
 }
 
 interface ProjectState {

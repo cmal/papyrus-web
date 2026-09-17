@@ -60,8 +60,8 @@ export default function TasksPage() {
   const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tasks.list", currentProject?.root],
-    queryFn: () => client!.call("tasks.list", { projectRoot: currentProject!.root }),
+    queryKey: ["tasks.list", currentProject?.projectRoot],
+    queryFn: () => client!.call("tasks.list", { project_root: currentProject!.projectRoot }),
     enabled: !!client && !!currentProject,
   });
 
@@ -93,7 +93,7 @@ export default function TasksPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !currentProject) return;
-    createMutation.mutate({ title: newTitle, body: newBody || undefined, projectRoot: currentProject.root });
+    createMutation.mutate({ title: newTitle, body: newBody || undefined, project_root: currentProject.projectRoot });
   };
 
   const lifecycleAction = (op: string, task: Task) => {

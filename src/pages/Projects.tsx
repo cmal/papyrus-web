@@ -12,7 +12,7 @@ import { Plus, FolderGit2, Search } from "lucide-react";
 interface Project {
   id: string;
   name: string;
-  root: string;
+  projectRoot: string;
   aliases: string[];
   createdAt?: string;
   [key: string]: unknown;
@@ -55,7 +55,7 @@ export default function ProjectsPage() {
 
   const filtered = projects.filter((p) =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.root?.toLowerCase().includes(searchQuery.toLowerCase()),
+    p.projectRoot?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -99,7 +99,7 @@ export default function ProjectsPage() {
                   <FolderGit2 size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{proj.name}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground" title={proj.root}>{proj.root}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground" title={proj.projectRoot}>{proj.projectRoot}</p>
                   </div>
                 </div>
                 {proj.aliases?.length > 0 && (

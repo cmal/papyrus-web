@@ -34,8 +34,8 @@ export default function NotesPage() {
   const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["notes.list", currentProject?.root],
-    queryFn: () => client!.call("notes.list", { projectRoot: currentProject!.root }),
+    queryKey: ["notes.list", currentProject?.projectRoot],
+    queryFn: () => client!.call("notes.list", { project_root: currentProject!.projectRoot }),
     enabled: !!client && !!currentProject,
   });
 
@@ -59,7 +59,7 @@ export default function NotesPage() {
   const handleCapture = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim() || !currentProject) return;
-    captureMutation.mutate({ content: newNote, projectRoot: currentProject.root });
+    captureMutation.mutate({ content: newNote, project_root: currentProject.projectRoot });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;

@@ -39,7 +39,7 @@ export function ProjectScopePicker({ value, onChange, label = "Project Scope" }:
     options.push({
       value: "current",
       label: currentProject.name,
-      hint: `Current project · ${currentProject.root}`,
+      hint: `Current project · ${currentProject.projectRoot}`,
       icon: <FolderGit2 size={14} />,
     });
   }
@@ -49,7 +49,7 @@ export function ProjectScopePicker({ value, onChange, label = "Project Scope" }:
     options.push({
       value: p.id,
       label: p.name,
-      hint: p.root,
+      hint: p.projectRoot,
       icon: <FolderGit2 size={14} />,
     });
   }

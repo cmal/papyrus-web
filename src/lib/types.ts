@@ -67,9 +67,10 @@ export interface Note extends Artifact {
 export interface Project {
   id: string;
   name: string;
-  root: string;
+  projectRoot: string;
   aliases: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface GraphEdge {

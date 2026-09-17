@@ -81,7 +81,7 @@ export function ProjectSelector() {
               <FolderGit2 size={14} className="mr-2" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{p.name}</div>
-                <div className="truncate text-[10px] text-muted-foreground">{p.root}</div>
+                <div className="truncate text-[10px] text-muted-foreground">{p.projectRoot}</div>
               </div>
               {currentProject?.id === p.id && <Check size={14} className="ml-2 shrink-0" />}
             </DropdownMenuItem>
