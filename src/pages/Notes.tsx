@@ -47,7 +47,7 @@ export default function NotesPage() {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: (id: string) => client!.call("notes.update", { id, status: "resolved" }),
+    mutationFn: (id: string) => client!.call("notes.update", { id, status: "active" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes.list"] }),
   });
 
@@ -78,8 +78,8 @@ export default function NotesPage() {
     );
   }
 
-  const openNotes = notes.filter((n) => n.status === "open" || !n.status);
-  const resolvedNotes = notes.filter((n) => n.status === "resolved" || n.status === "dismissed");
+  const draftNotes = notes.filter((n) => n.status === "draft" || !n.status);
+  const activeNotes = notes.filter((n) => n.status === "active");
 
   return (
     <div className="flex h-full flex-col">
@@ -87,7 +87,7 @@ export default function NotesPage() {
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-semibold">Notes</h2>
           <Badge variant="secondary">{notes.length}</Badge>
-          <Badge variant="info">{openNotes.length} open</Badge>
+          <Badge variant="info">{draftNotes.length} inbox</Badge>
         </div>
         <form onSubmit={handleCapture} className="mt-3 flex items-center gap-2">
           {currentProject ? (
@@ -114,17 +114,17 @@ export default function NotesPage() {
       </div>
       <div className="flex-1 overflow-auto p-6">
         <div className="space-y-6">
-          {openNotes.length > 0 && (
+          {draftNotes.length > 0 && (
             <div>
-              <h3 className="mb-2 text-sm font-medium text-muted-foreground">Open</h3>
+              <h3 className="mb-2 text-sm font-medium text-muted-foreground">Inbox</h3>
               <div className="space-y-2">
-                {openNotes.map((note) => (
+                {draftNotes.map((note) => (
                   <Card key={note.id} className="hover:shadow-sm">
                     <CardContent className="flex items-start gap-3 p-3">
                       <StickyNote size={16} className="mt-0.5 shrink-0 text-yellow-500" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm">{note.title || note.name || note.content || note.body}</p>
-                        {note.createdAt && <p className="mt-1 text-xs text-muted-foreground">{new Date(note.createdAt).toLocaleString()}</p>}
+                        {note.created_at ? <p className="mt-1 text-xs text-muted-foreground">{new Date(note.created_at as string).toLocaleString()}</p> : null}
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => resolveMutation.mutate(note.id)} title="Resolve">
@@ -140,11 +140,11 @@ export default function NotesPage() {
               </div>
             </div>
           )}
-          {resolvedNotes.length > 0 && (
+          {activeNotes.length > 0 && (
             <div>
-              <h3 className="mb-2 text-sm font-medium text-muted-foreground">Resolved</h3>
+              <h3 className="mb-2 text-sm font-medium text-muted-foreground">Active</h3>
               <div className="space-y-2 opacity-60">
-                {resolvedNotes.map((note) => (
+                {activeNotes.map((note) => (
                   <Card key={note.id}>
                     <CardContent className="flex items-center gap-3 p-3">
                       <CheckCircle2 size={16} className="shrink-0 text-green-500" />
