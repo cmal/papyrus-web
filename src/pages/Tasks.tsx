@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useConnectionStore } from "@/store/connection";
 import { useProjectStore } from "@/store/project";
-import { ProjectScopePicker } from "@/components/ui/project-scope-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Play, CheckCircle, Pause, XCircle, RotateCcw, Focus, Trash2, Eye } from "lucide-react";
+import { Plus, MoreHorizontal, Play, CheckCircle, Pause, XCircle, RotateCcw, Focus, Trash2, Eye, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TASK_STATUSES = ["backlog", "ready", "active", "paused", "submitted", "completed", "rejected", "cancelled"] as const;
@@ -57,14 +56,13 @@ export default function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
-  const [projectScope, setProjectScope] = useState("current");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["tasks.list"],
-    queryFn: () => client!.call("tasks.list", {}),
-    enabled: !!client,
+    queryKey: ["tasks.list", currentProject?.root],
+    queryFn: () => client!.call("tasks.list", { projectRoot: currentProject!.root }),
+    enabled: !!client && !!currentProject,
   });
 
   const tasks = taskListResponse(data);
@@ -76,7 +74,6 @@ export default function TasksPage() {
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
-      setProjectScope("current");
     },
   });
 
@@ -95,14 +92,8 @@ export default function TasksPage() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
-    const input: any = { title: newTitle, body: newBody || undefined };
-    if (projectScope === "current" && currentProject) {
-      input.projectRoot = currentProject.root;
-    } else if (projectScope !== "global" && projectScope !== "current") {
-      input.projectRoot = projectScope; // treat as project root directly
-    }
-    createMutation.mutate(input);
+    if (!newTitle.trim() || !currentProject) return;
+    createMutation.mutate({ title: newTitle, body: newBody || undefined, projectRoot: currentProject.root });
   };
 
   const lifecycleAction = (op: string, task: Task) => {
@@ -171,6 +162,20 @@ export default function TasksPage() {
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading tasks...</div>;
   if (error) return <div className="p-6 text-destructive">Error: {error.message}</div>;
 
+  if (!currentProject) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <ListTodo size={28} className="text-muted-foreground" />
+        </div>
+        <h3 className="mb-2 text-lg font-semibold">Select a project to view tasks</h3>
+        <p className="mb-4 max-w-sm text-sm text-muted-foreground">
+          Tasks are scoped to a project. Use the project selector in the header to choose a project, or register one in the Projects page.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-6 py-3">
@@ -200,10 +205,14 @@ export default function TasksPage() {
                   <Label>Body</Label>
                   <Textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} placeholder="Description (optional)" rows={4} />
                 </div>
-                <ProjectScopePicker value={projectScope} onChange={setProjectScope} />
+                {currentProject && (
+                  <div className="rounded-md bg-primary/5 px-3 py-2 text-xs text-primary">
+                    Will be created in project: <span className="font-medium">{currentProject.name}</span>
+                  </div>
+                )}
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={createMutation.isPending || !newTitle.trim()}>
+                  <Button type="submit" disabled={createMutation.isPending || !newTitle.trim() || !currentProject}>
                     {createMutation.isPending ? "Creating..." : "Create"}
                   </Button>
                 </DialogFooter>

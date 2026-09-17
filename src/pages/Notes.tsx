@@ -34,9 +34,9 @@ export default function NotesPage() {
   const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["notes.list"],
-    queryFn: () => client!.call("notes.list", {}),
-    enabled: !!client,
+    queryKey: ["notes.list", currentProject?.root],
+    queryFn: () => client!.call("notes.list", { projectRoot: currentProject!.root }),
+    enabled: !!client && !!currentProject,
   });
 
   const notes = extractList(data);
@@ -58,13 +58,25 @@ export default function NotesPage() {
 
   const handleCapture = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNote.trim()) return;
-    const input: any = { content: newNote };
-    if (currentProject) input.projectRoot = currentProject.root;
-    captureMutation.mutate(input);
+    if (!newNote.trim() || !currentProject) return;
+    captureMutation.mutate({ content: newNote, projectRoot: currentProject.root });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+
+  if (!currentProject) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <StickyNote size={28} className="text-muted-foreground" />
+        </div>
+        <h3 className="mb-2 text-lg font-semibold">Select a project to view notes</h3>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Notes are scoped to a project. Use the project selector in the header to choose a project.
+        </p>
+      </div>
+    );
+  }
 
   const openNotes = notes.filter((n) => n.status === "open" || !n.status);
   const resolvedNotes = notes.filter((n) => n.status === "resolved" || n.status === "dismissed");
@@ -95,7 +107,7 @@ export default function NotesPage() {
             placeholder={currentProject ? `Capture to "${currentProject.name}"...` : "Capture a thought, idea, or reminder..."}
             className="flex-1"
           />
-          <Button type="submit" size="sm" disabled={!newNote.trim() || captureMutation.isPending}>
+          <Button type="submit" size="sm" disabled={!newNote.trim() || captureMutation.isPending || !currentProject}>
             <Plus size={16} className="mr-1" /> Capture
           </Button>
         </form>
