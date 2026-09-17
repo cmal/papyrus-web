@@ -26,13 +26,13 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { client, init } = useConnectionStore();
+  const { health, init } = useConnectionStore();
 
   useEffect(() => {
     init();
   }, [init]);
 
-  if (!client) {
+  if (!health?.ok) {
     return <ConnectPage />;
   }
 

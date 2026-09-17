@@ -9,6 +9,7 @@ interface ConnectionState {
   connecting: boolean;
   error: string | null;
   connect: (config: ConnectionConfig) => Promise<void>;
+  autoConnect: () => Promise<void>;
   disconnect: () => void;
   checkHealth: () => Promise<void>;
   init: () => void;
@@ -22,11 +23,25 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   error: null,
 
   init: () => {
-    const config = loadConfig();
-    if (config) {
-      const client = getClient();
-      set({ config, client });
-      get().checkHealth();
+    const saved = loadConfig();
+    // Auto mode: relative path + proxy-injected token (works in both dev and prod)
+    const config = saved ?? { baseUrl: "", token: "" };
+    setClient(config);
+    const client = getClient()!;
+    set({ config, client });
+    get().checkHealth();
+  },
+
+  autoConnect: async () => {
+    const config = { baseUrl: "", token: "" };
+    setClient(config);
+    const client = getClient()!;
+    set({ config, client, connecting: true, error: null });
+    try {
+      const health = await client.health();
+      set({ health, connecting: false });
+    } catch (err) {
+      set({ health: null, connecting: false, error: err instanceof Error ? err.message : String(err) });
     }
   },
 
