@@ -87,7 +87,7 @@ export default function ConnectPage() {
                 <p className="mb-1 font-medium text-foreground">Make sure the daemon is running:</p>
                 <code className="block rounded bg-background px-2 py-1">papyrus service install</code>
                 <code className="mt-1 block rounded bg-background px-2 py-1">papyrus serve</code>
-                <p className="mt-2">The web app auto-reads the port/token from <code className="rounded bg-background px-1">$XDG_RUNTIME_DIR/papyrus/</code></p>
+                <p className="mt-2">The web app auto-reads the port/token from the daemon state directory (<code className="rounded bg-background px-1">~/.local/state/papyrus/</code> or <code className="rounded bg-background px-1">$XDG_RUNTIME_DIR/papyrus/</code>)</p>
               </div>
               <Button variant="outline" className="w-full" onClick={() => autoConnect()} disabled={connecting}>
                 <RefreshCw size={14} className="mr-2" /> Retry connection

@@ -3,21 +3,25 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PAPYRUS_WEB_PORT || "5174", 10);
 
-function runtimeDir() {
-  return process.env.XDG_RUNTIME_DIR || path.join(process.env.TMPDIR || "/tmp", `papyrus-${process.env.USER || "user"}`);
+function daemonStateDir() {
+  if (process.env.PAPYRUS_DAEMON_DIR) return process.env.PAPYRUS_DAEMON_DIR;
+  if (process.env.XDG_RUNTIME_DIR) return path.join(process.env.XDG_RUNTIME_DIR, "papyrus");
+  if (process.env.XDG_STATE_HOME) return path.join(process.env.XDG_STATE_HOME, "papyrus");
+  return path.join(os.homedir(), ".local", "state", "papyrus");
 }
 
 function readDaemonHandle() {
-  const dir = runtimeDir();
-  const portFile = path.join(dir, "papyrus", "port");
-  const tokenFile = path.join(dir, "papyrus", "token");
+  const dir = daemonStateDir();
+  const portFile = path.join(dir, "port");
+  const tokenFile = path.join(dir, "token");
   try {
-    const port = fs.readFileSync(portFile, "utf8").trim();
+    const port = fs.readFileSync(portFile, "utf8").trim().split("\n")[0];
     const token = fs.readFileSync(tokenFile, "utf8").trim();
     return { baseUrl: `http://127.0.0.1:${port}`, token };
   } catch {

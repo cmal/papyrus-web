@@ -4,14 +4,17 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 
-function runtimeDir(): string {
-  return process.env.XDG_RUNTIME_DIR || path.join(os.tmpdir(), `papyrus-${process.env.USER || "user"}`);
+function daemonStateDir(): string {
+  if (process.env.PAPYRUS_DAEMON_DIR) return process.env.PAPYRUS_DAEMON_DIR;
+  if (process.env.XDG_RUNTIME_DIR) return path.join(process.env.XDG_RUNTIME_DIR, "papyrus");
+  if (process.env.XDG_STATE_HOME) return path.join(process.env.XDG_STATE_HOME, "papyrus");
+  return path.join(os.homedir(), ".local", "state", "papyrus");
 }
 
 function readDaemonHandle(): { port: string; token: string } | null {
-  const dir = path.join(runtimeDir(), "papyrus");
+  const dir = daemonStateDir();
   try {
-    const port = fs.readFileSync(path.join(dir, "port"), "utf8").trim();
+    const port = fs.readFileSync(path.join(dir, "port"), "utf8").trim().split("\n")[0];
     const token = fs.readFileSync(path.join(dir, "token"), "utf8").trim();
     return { port, token };
   } catch {
