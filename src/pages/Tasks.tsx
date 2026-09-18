@@ -86,7 +86,13 @@ export default function TasksPage() {
 
   const lifecycleMutation = useMutation({
     mutationFn: ({ op, id }: { op: string; id: string }) => client!.call(op, { id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks.list"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks.list"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks.show"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks.plan"] });
+      setSelectedTask(null);
+      setLifecycleError(null);
+    },
   });
 
   const removeMutation = useMutation({

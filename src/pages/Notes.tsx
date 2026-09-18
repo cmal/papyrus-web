@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, StickyNote, CheckCircle2, FolderGit2, Globe } from "lucide-react";
+import { Plus, Trash2, StickyNote, CheckCircle2, FolderGit2, Globe, Undo2, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Note {
   id: string;
@@ -16,6 +17,8 @@ interface Note {
   body?: string;
   status: string;
   createdAt?: string;
+  created_at?: string;
+  labels?: string[];
   [key: string]: unknown;
 }
 
@@ -31,6 +34,7 @@ export default function NotesPage() {
   const client = useConnectionStore((s) => s.client);
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const currentProject = useProjectStore((s) => s.currentProject);
 
   const { data, isLoading } = useQuery({
@@ -47,7 +51,7 @@ export default function NotesPage() {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: (id: string) => client!.call("notes.update", { id, status: "active" }),
+    mutationFn: (id: string) => client!.call("notes.consume", { id, project_root: currentProject!.projectRoot }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes.list"] }),
   });
 
@@ -56,10 +60,23 @@ export default function NotesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes.list"] }),
   });
 
+  const redraftMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch("/api/papyrus-web/redraft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "redraft failed");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes.list"] }),
+  });
+
   const handleCapture = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.trim() || !currentProject) return;
-    captureMutation.mutate({ content: newNote, project_root: currentProject.projectRoot });
+    captureMutation.mutate({ body: newNote, project_root: currentProject.projectRoot });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
@@ -127,6 +144,9 @@ export default function NotesPage() {
                         {note.created_at ? <p className="mt-1 text-xs text-muted-foreground">{new Date(note.created_at as string).toLocaleString()}</p> : null}
                       </div>
                       <div className="flex shrink-0 gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedNote(note)} title="View details">
+                          <Eye size={14} />
+                        </Button>
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => resolveMutation.mutate(note.id)} title="Resolve">
                           <CheckCircle2 size={14} />
                         </Button>
@@ -149,9 +169,17 @@ export default function NotesPage() {
                     <CardContent className="flex items-center gap-3 p-3">
                       <CheckCircle2 size={16} className="shrink-0 text-green-500" />
                       <p className="flex-1 text-sm line-through">{note.title || note.name || note.content || note.body}</p>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)}>
-                        <Trash2 size={14} />
-                      </Button>
+                      <div className="flex shrink-0 gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedNote(note)} title="View details">
+                          <Eye size={14} />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => redraftMutation.mutate(note.id)} title="Back to draft">
+                          <Undo2 size={14} />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)}>
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -161,6 +189,34 @@ export default function NotesPage() {
           {notes.length === 0 && <div className="text-center text-muted-foreground">No notes yet. Capture your first thought above.</div>}
         </div>
       </div>
+
+      {/* Note Detail Dialog */}
+      <Dialog open={!!selectedNote} onOpenChange={(o) => { if (!o) setSelectedNote(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote size={18} className="text-yellow-500" />
+              <span className="flex-1 truncate">{selectedNote?.title || selectedNote?.name || "(untitled)"}</span>
+              <Badge variant="secondary">{selectedNote?.status}</Badge>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedNote?.created_at && (
+              <p className="text-xs text-muted-foreground">Created: {new Date(selectedNote.created_at as string).toLocaleString()}</p>
+            )}
+            <div className="rounded-md border bg-muted/30 p-4">
+              <p className="whitespace-pre-wrap text-sm">{selectedNote?.body || selectedNote?.content || "(no body content)"}</p>
+            </div>
+            {selectedNote?.labels && Array.isArray(selectedNote.labels) && selectedNote.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {selectedNote.labels.map((label: string, i: number) => (
+                  <Badge key={i} variant="outline">{label}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

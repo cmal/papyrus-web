@@ -1,8 +1,55 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+
+function papyrusDbPath(): string {
+  if (process.env.XDG_DATA_HOME) return path.join(process.env.XDG_DATA_HOME, "papyrus", "papyrus.db");
+  return path.join(os.homedir(), ".local", "share", "papyrus", "papyrus.db");
+}
+
+// Custom plugin: expose /api/papyrus-web/redraft to set a note back to draft
+function papyrusWebPlugin(): Plugin {
+  return {
+    name: "papyrus-web-custom",
+    configureServer(server) {
+      server.middlewares.use("/api/papyrus-web/redraft", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.end("Method Not Allowed");
+          return;
+        }
+        let body = "";
+        req.on("data", (chunk) => (body += chunk));
+        req.on("end", async () => {
+          try {
+            const { id } = JSON.parse(body || "{}");
+            if (!id) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: "id is required" }));
+              return;
+            }
+            const { DatabaseSync } = await import("node:sqlite");
+            const db = new DatabaseSync(papyrusDbPath());
+            const result = db.prepare("UPDATE artifacts SET status = 'draft', updated_at = datetime('now') WHERE id = ? AND subtype = 'note'").run(id);
+            db.close();
+            if (result.changes === 0) {
+              res.statusCode = 404;
+              res.end(JSON.stringify({ error: "note not found or already draft" }));
+              return;
+            }
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ ok: true, id }));
+          } catch (e: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      });
+    },
+  };
+}
 
 function daemonStateDir(): string {
   if (process.env.PAPYRUS_DAEMON_DIR) return process.env.PAPYRUS_DAEMON_DIR;
@@ -45,7 +92,7 @@ const papyrusProxy = {
 };
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), papyrusWebPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
