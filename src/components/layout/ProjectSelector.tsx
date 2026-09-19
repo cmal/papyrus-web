@@ -43,7 +43,9 @@ export function ProjectSelector() {
           variant="outline"
           size="sm"
           className={cn(
-            "gap-2 border-2 font-medium",
+            /* min-w-0 lets the label truncate instead of pushing the header wider
+               than the viewport; the badge only appears once there is room for it. */
+            "min-w-0 gap-1.5 border-2 px-2 font-medium sm:gap-2 sm:px-3",
             currentProject
               ? "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
               : "border-muted-foreground/20",
@@ -52,20 +54,21 @@ export function ProjectSelector() {
           {currentProject ? (
             <>
               <FolderGit2 size={14} className="shrink-0" />
-              <span className="max-w-[140px] truncate">{currentProject.name}</span>
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">project</Badge>
+              <span className="max-w-[72px] truncate sm:max-w-[140px]">{currentProject.name}</span>
+              <Badge variant="outline" className="hidden h-5 px-1.5 text-[10px] sm:inline-flex">project</Badge>
             </>
           ) : (
             <>
               <Globe size={14} className="shrink-0 text-muted-foreground" />
-              <span className="text-muted-foreground">Global</span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">all projects</Badge>
+              <span className="truncate text-muted-foreground">Global</span>
+              <Badge variant="secondary" className="hidden h-5 px-1.5 text-[10px] sm:inline-flex">all projects</Badge>
             </>
           )}
           <ChevronDown size={14} className="shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      {/* Dropdown is positioned against the trigger, so cap it to the viewport on phones. */}
+      <DropdownMenuContent align="start" className="w-64 max-w-[85vw]">
         <DropdownMenuLabel>Project Context</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => setCurrentProject(null)}>
           <Globe size={14} className="mr-2" />

@@ -79,7 +79,7 @@ export default function NotesPage() {
     captureMutation.mutate({ body: newNote, project_root: currentProject.projectRoot });
   };
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading...</div>;
 
   if (!currentProject) {
     return (
@@ -100,17 +100,19 @@ export default function NotesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Notes</h2>
           <Badge variant="secondary">{notes.length}</Badge>
           <Badge variant="info">{draftNotes.length} inbox</Badge>
         </div>
-        <form onSubmit={handleCapture} className="mt-3 flex items-center gap-2">
+        {/* flex-wrap keeps the capture box at a usable minimum width and drops the button
+            onto the next line on narrow screens instead of overflowing the row. */}
+        <form onSubmit={handleCapture} className="mt-3 flex flex-wrap items-center gap-2">
           {currentProject ? (
             <Badge variant="info" className="shrink-0 gap-1 border-2 border-primary/30 bg-primary/10 px-2.5 py-1.5 text-primary">
               <FolderGit2 size={12} />
-              <span className="max-w-[100px] truncate">{currentProject.name}</span>
+              <span className="max-w-[72px] truncate sm:max-w-[100px]">{currentProject.name}</span>
             </Badge>
           ) : (
             <Badge variant="outline" className="shrink-0 gap-1 px-2.5 py-1.5 text-muted-foreground">
@@ -122,14 +124,14 @@ export default function NotesPage() {
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             placeholder={currentProject ? `Capture to "${currentProject.name}"...` : "Capture a thought, idea, or reminder..."}
-            className="flex-1"
+            className="min-w-[8rem] flex-1"
           />
           <Button type="submit" size="sm" disabled={!newNote.trim() || captureMutation.isPending || !currentProject}>
             <Plus size={16} className="mr-1" /> Capture
           </Button>
         </form>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="space-y-6">
           {draftNotes.length > 0 && (
             <div>
@@ -140,17 +142,17 @@ export default function NotesPage() {
                     <CardContent className="flex items-start gap-3 p-3">
                       <StickyNote size={16} className="mt-0.5 shrink-0 text-yellow-500" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm">{note.title || note.name || note.content || note.body}</p>
+                        <p className="break-words text-sm">{note.title || note.name || note.content || note.body}</p>
                         {note.created_at ? <p className="mt-1 text-xs text-muted-foreground">{new Date(note.created_at as string).toLocaleString()}</p> : null}
                       </div>
                       <div className="flex shrink-0 gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedNote(note)} title="View details">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7" onClick={() => setSelectedNote(note)} title="View details">
                           <Eye size={14} />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => resolveMutation.mutate(note.id)} title="Resolve">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7" onClick={() => resolveMutation.mutate(note.id)} title="Resolve">
                           <CheckCircle2 size={14} />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)} title="Delete">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)} title="Delete">
                           <Trash2 size={14} />
                         </Button>
                       </div>
@@ -168,15 +170,15 @@ export default function NotesPage() {
                   <Card key={note.id}>
                     <CardContent className="flex items-center gap-3 p-3">
                       <CheckCircle2 size={16} className="shrink-0 text-green-500" />
-                      <p className="flex-1 text-sm line-through">{note.title || note.name || note.content || note.body}</p>
+                      <p className="min-w-0 flex-1 break-words text-sm line-through">{note.title || note.name || note.content || note.body}</p>
                       <div className="flex shrink-0 gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedNote(note)} title="View details">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7" onClick={() => setSelectedNote(note)} title="View details">
                           <Eye size={14} />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => redraftMutation.mutate(note.id)} title="Back to draft">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7" onClick={() => redraftMutation.mutate(note.id)} title="Back to draft">
                           <Undo2 size={14} />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-7 sm:w-7 text-destructive" onClick={() => removeMutation.mutate(note.id)}>
                           <Trash2 size={14} />
                         </Button>
                       </div>
@@ -196,7 +198,7 @@ export default function NotesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <StickyNote size={18} className="text-yellow-500" />
-              <span className="flex-1 truncate">{selectedNote?.title || selectedNote?.name || "(untitled)"}</span>
+              <span className="min-w-0 flex-1 truncate">{selectedNote?.title || selectedNote?.name || "(untitled)"}</span>
               <Badge variant="secondary">{selectedNote?.status}</Badge>
             </DialogTitle>
           </DialogHeader>

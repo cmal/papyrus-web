@@ -32,12 +32,21 @@ export class PapyrusClient {
   constructor(private config: ConnectionConfig) {}
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    // 只有在真正持有 token 时才附带 Authorization 头。
+    // auto 模式（baseUrl/token 均为空）下由本机代理注入 daemon token，
+    // 此处若发一个空的 `Bearer ` 会顶掉浏览器为本站缓存的 HTTP Basic 凭据，
+    // 导致站点置于 basic auth 闸门之后时 /health、/api/* 恒定 401。
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (this.config.token) {
+      headers.authorization = `Bearer ${this.config.token}`;
+    }
     const res = await fetch(`${this.config.baseUrl}${path}`, {
       ...init,
       headers: {
-        authorization: `Bearer ${this.config.token}`,
-        "content-type": "application/json",
-        ...init.headers,
+        ...headers,
+        ...((init.headers ?? {}) as Record<string, string>),
       },
     });
     const body = await res.json().catch(() => ({}));

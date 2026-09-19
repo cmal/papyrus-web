@@ -119,8 +119,8 @@ export default function GraphPage() {
   const cycleIds = data?.cycleIds || [];
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading task graph...</div>;
-  if (error) return <div className="p-6 text-destructive">Error: {error.message}</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading task graph...</div>;
+  if (error) return <div className="p-4 text-destructive sm:p-6">Error: {error.message}</div>;
 
   if (!currentProject) {
     return (
@@ -136,8 +136,8 @@ export default function GraphPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Task Graph</h2>
           <Badge variant="secondary">{nodes.length} tasks · {layers.length} layers</Badge>
         </div>
@@ -148,16 +148,18 @@ export default function GraphPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         {nodes.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
             <Network size={48} className="mb-4 opacity-30" />
             <p>No tasks in this project.</p>
           </div>
         ) : (
-          <div className="flex gap-6">
+          /* w-max keeps the layer rail at its intrinsic width so the outer overflow-auto
+             scrolls it, instead of the flex row collapsing to the viewport. */
+          <div className="flex w-max gap-4 sm:gap-6">
             {layers.map((layerIds, layerIdx) => (
-              <div key={layerIdx} className="w-72 shrink-0">
+              <div key={layerIdx} className="w-[85vw] shrink-0 sm:w-72">
                 <div className="mb-3 flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">Layer {layerIdx}</Badge>
                   <span className="text-xs text-muted-foreground">{layerIds.length} tasks</span>
@@ -250,8 +252,8 @@ export default function GraphPage() {
                   {lifecycleError && (
                     <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{lifecycleError}</div>
                   )}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><span className="text-muted-foreground">ID:</span> <code className="text-xs">{selectedTask.id}</code></div>
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4">
+                    <div><span className="text-muted-foreground">ID:</span> <code className="break-all text-xs">{selectedTask.id}</code></div>
                     <div><span className="text-muted-foreground">Layer:</span> {selectedTask.layer}</div>
                     <div><span className="text-muted-foreground">Prerequisites:</span> {selectedTask.prerequisiteIds.length}</div>
                     <div><span className="text-muted-foreground">Blocking:</span> {selectedTask.successorIds.length}</div>

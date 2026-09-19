@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2, FileText } from "lucide-react";
+import { normalizeLabels } from "@/lib/labels";
 
 interface Doc {
   id: string;
@@ -73,12 +74,12 @@ export default function DocsPage() {
     });
   };
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading...</div>;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Docs</h2>
           <Badge variant="secondary">{docs.length}</Badge>
         </div>
@@ -100,7 +101,7 @@ export default function DocsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {docs.map((doc) => (
             <Card key={doc.id} className="cursor-pointer hover:shadow-md" onClick={() => setSelected(doc)}>
@@ -114,7 +115,7 @@ export default function DocsPage() {
                 </div>
                 <div className="mt-2 flex gap-1">
                   <Badge variant="outline" className="text-[10px]">{doc.status}</Badge>
-                  {doc.labels?.slice(0, 2).map((l) => <Badge key={l} variant="secondary" className="text-[10px]">{l}</Badge>)}
+                  {normalizeLabels(doc.labels).slice(0, 2).map((l) => <Badge key={l} variant="secondary" className="text-[10px]">{l}</Badge>)}
                 </div>
               </CardContent>
             </Card>
@@ -129,8 +130,8 @@ export default function DocsPage() {
             <>
               <DialogHeader><DialogTitle>{selected.title || selected.name}</DialogTitle></DialogHeader>
               {selected.body && <div className="max-h-[50vh] overflow-auto rounded-md bg-muted p-4"><p className="whitespace-pre-wrap text-sm">{selected.body}</p></div>}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-muted-foreground">ID:</span> <code className="text-xs">{selected.id}</code></div>
+              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                <div><span className="text-muted-foreground">ID:</span> <code className="break-all text-xs">{selected.id}</code></div>
                 <div><span className="text-muted-foreground">Status:</span> {selected.status}</div>
               </div>
               <DialogFooter><Button variant="destructive" size="sm" onClick={() => removeMutation.mutate(selected.id)}><Trash2 size={14} className="mr-1" />Remove</Button></DialogFooter>

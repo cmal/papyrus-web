@@ -58,19 +58,21 @@ export default function ProjectsPage() {
     p.projectRoot?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading...</div>;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Projects</h2>
           <Badge variant="secondary">{projects.length}</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        {/* w-full below sm pushes the search box onto its own row instead of squashing
+            the toolbar. */}
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="relative min-w-0 flex-1 sm:flex-none">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="h-8 w-48 pl-8 text-xs" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="h-8 w-full pl-8 text-xs sm:w-48" />
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -90,7 +92,7 @@ export default function ProjectsPage() {
           </Dialog>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((proj) => (
             <Card key={proj.id} className="hover:shadow-sm">

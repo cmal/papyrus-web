@@ -45,11 +45,20 @@ export function DialogContent({ className, children }: { className?: string; chi
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
-      <div className={cn("relative z-50 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-background p-6 shadow-lg", className)}>
+      <div
+        className={cn(
+          "relative z-50 max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border bg-background p-4 shadow-lg sm:max-h-[85vh] sm:p-6",
+          className,
+        )}
+      >
         {children}
-        <button onClick={() => setOpen(false)} className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Close"
+          className="absolute right-3 top-3 rounded-sm p-1 opacity-70 hover:opacity-100 sm:right-4 sm:top-4"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>

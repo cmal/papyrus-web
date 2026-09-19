@@ -25,10 +25,10 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b px-6 py-3">
+      <div className="border-b px-3 py-3 sm:px-6">
         <h2 className="text-lg font-semibold">Settings</h2>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* Connection Status */}
           <Card>
@@ -82,7 +82,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>Exposes all Papyrus daemon operations (tasks, docs, rules, playbooks, notes, projects, graph) through a browser interface.</p>
-              <p>The daemon runs locally with an authenticated loopback API. Find the port and token in <code className="rounded bg-muted px-1 py-0.5 text-xs">$XDG_RUNTIME_DIR/papyrus/</code></p>
+              <p>The daemon runs locally with an authenticated loopback API. Find the port and token in <code className="break-all rounded bg-muted px-1 py-0.5 text-xs">$XDG_RUNTIME_DIR/papyrus/</code></p>
             </CardContent>
           </Card>
         </div>

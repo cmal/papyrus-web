@@ -57,3 +57,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * iOS Safari zooms the whole page when a focused form control's font-size is below
+ * 16px, then never zooms back out — so every keystroke in a dialog would shift the
+ * layout. Our controls are deliberately 14px/12px (text-sm/text-xs), so raise them to
+ * 16px on phone-sized viewports only.
+ *
+ * Deliberately NOT inside @layer: Tailwind emits base < components < utilities, so a
+ * base-layer rule would lose to `.text-sm`. Plain CSS after the layers plus
+ * `!important` is what actually wins — a class always outranks any type selector.
+ */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

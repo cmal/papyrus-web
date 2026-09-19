@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Plus, MoreHorizontal, Play, CheckCircle, Pause, XCircle, RotateCcw, Focus, Trash2, Eye, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeLabels } from "@/lib/labels";
 
 const TASK_STATUSES = ["todo", "in-progress", "review", "rejected", "done", "canceled"] as const;
 type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -48,12 +49,21 @@ interface Task {
   [key: string]: unknown;
 }
 
-function taskListResponse(data: any): Task[] {
+function extractTaskArray(data: any): Task[] {
   if (Array.isArray(data)) return data;
   if (data?.tasks) return data.tasks;
   if (data?.items) return data.items;
-  if (data?.result) return taskListResponse(data.result);
+  if (data?.result) return extractTaskArray(data.result);
   return [];
+}
+
+/**
+ * The daemon's labels column is not validated on every write path, so the API can
+ * return a comma-joined string where `Task.labels` says `string[]` (see lib/labels.ts).
+ * Normalize once at the ingestion boundary so every render site below is safe.
+ */
+function taskListResponse(data: any): Task[] {
+  return extractTaskArray(data).map((task) => ({ ...task, labels: normalizeLabels(task.labels) }));
 }
 
 export default function TasksPage() {
@@ -121,7 +131,7 @@ export default function TasksPage() {
     if (!selectedTask) return;
     setEditTitle(selectedTask.title || selectedTask.name || "");
     setEditBody(selectedTask.body || "");
-    setEditLabels(selectedTask.labels?.join(", ") || "");
+    setEditLabels(normalizeLabels(selectedTask.labels).join(", "));
     setEditing(true);
   };
 
@@ -248,7 +258,7 @@ export default function TasksPage() {
         <div className="mt-2 flex flex-wrap items-center gap-1">
           <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[task.status])}>{STATUS_LABELS[task.status]}</Badge>
           {task.focus && <Badge variant="info" className="text-[10px]">focus</Badge>}
-          {task.labels?.slice(0, 2).map((l) => (
+          {normalizeLabels(task.labels).slice(0, 2).map((l) => (
             <Badge key={l} variant="secondary" className="text-[10px]">{l}</Badge>
           ))}
         </div>
@@ -256,8 +266,8 @@ export default function TasksPage() {
     </Card>
   );
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading tasks...</div>;
-  if (error) return <div className="p-6 text-destructive">Error: {error.message}</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading tasks...</div>;
+  if (error) return <div className="p-4 text-destructive sm:p-6">Error: {error.message}</div>;
 
   if (!currentProject) {
     return (
@@ -275,8 +285,8 @@ export default function TasksPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Tasks</h2>
           <Badge variant="secondary">{tasks.length}</Badge>
         </div>
@@ -319,13 +329,15 @@ export default function TasksPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         {view === "board" ? (
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-3 overflow-x-auto pb-4 sm:gap-4">
             {TASK_STATUSES.map((status) => {
               const columnTasks = tasks.filter((t) => t.status === status);
               return (
-                <div key={status} className="w-72 shrink-0">
+                /* Near-full-width columns on phones so the next column peeks in and the
+                   row reads as horizontally scrollable; fixed 18rem from sm up. */
+                <div key={status} className="w-[85vw] shrink-0 sm:w-72">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium">{STATUS_LABELS[status]}</span>
                     <Badge variant="outline" className="text-xs">{columnTasks.length}</Badge>
@@ -408,10 +420,10 @@ export default function TasksPage() {
                       <p className="whitespace-pre-wrap text-sm">{selectedTask.body}</p>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><span className="text-muted-foreground">ID:</span> <code className="text-xs">{selectedTask.id}</code></div>
-                    <div><span className="text-muted-foreground">Project:</span> {selectedTask.projectRoot || "—"}</div>
-                    <div><span className="text-muted-foreground">Labels:</span> {selectedTask.labels?.join(", ") || "—"}</div>
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 sm:gap-4">
+                    <div><span className="text-muted-foreground">ID:</span> <code className="break-all text-xs">{selectedTask.id}</code></div>
+                    <div><span className="text-muted-foreground">Project:</span> <span className="break-all">{selectedTask.projectRoot || "—"}</span></div>
+                    <div><span className="text-muted-foreground">Labels:</span> {normalizeLabels(selectedTask.labels).join(", ") || "—"}</div>
                     <div><span className="text-muted-foreground">Created:</span> {selectedTask.createdAt || "—"}</div>
                   </div>
 
@@ -424,11 +436,13 @@ export default function TasksPage() {
                       )}
                     </div>
                     {addingDep && (
-                      <div className="flex items-center gap-2">
+                      /* A <select> sizes itself to its widest option, so min-w-0 on it is what
+                         lets the row shrink instead of being pushed past the dialog. */
+                      <div className="flex flex-wrap items-center gap-2">
                         <select
                           value={newDepId}
                           onChange={(e) => setNewDepId(e.target.value)}
-                          className="flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
+                          className="min-w-0 flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
                         >
                           <option value="">Select a task...</option>
                           {tasks
@@ -468,8 +482,8 @@ export default function TasksPage() {
                         {blockingIds.map((blockId) => {
                           const blockTask = taskById.get(blockId);
                           return (
-                            <div key={blockId} className="flex items-center justify-between rounded-md bg-muted px-3 py-1.5">
-                              <span className="truncate text-xs">{blockTask?.title || blockTask?.name || blockId}</span>
+                            <div key={blockId} className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-1.5">
+                              <span className="min-w-0 truncate text-xs">{blockTask?.title || blockTask?.name || blockId}</span>
                               {blockTask && <Badge variant="outline" className="text-[10px]">{STATUS_LABELS[blockTask.status] || blockTask.status}</Badge>}
                             </div>
                           );

@@ -135,12 +135,12 @@ export default function PlaybooksPage() {
   const updateArg = (id: string, field: "key" | "value", v: string) =>
     setInvokeArgs(invokeArgs.map((r) => (r.id === id ? { ...r, [field]: v } : r)));
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading...</div>;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Playbooks</h2>
           <Badge variant="secondary">{playbooks.length}</Badge>
         </div>
@@ -181,7 +181,7 @@ export default function PlaybooksPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {playbooks.map((pb) => (
             <Card key={pb.id} className="cursor-pointer hover:shadow-md" onClick={() => { setSelected(pb); setInvokeResult(null); setInvokeArgs([{ id: nextRowId(), key: "", value: "" }]); setInvokeOpen(true); }}>
@@ -216,7 +216,7 @@ export default function PlaybooksPage() {
 
               {/* Playbook 完整详情 */}
               <div className="space-y-3 rounded-md border bg-muted/30 p-4">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
                   <div className="col-span-2"><span className="text-muted-foreground">ID:</span> <code className="break-all">{selectedFull.id}</code></div>
                   <div><span className="text-muted-foreground">Status:</span> {selectedFull.status}</div>
                   <div><span className="text-muted-foreground">Name:</span> {selectedFull.name || "—"}</div>
@@ -224,7 +224,7 @@ export default function PlaybooksPage() {
                   {selectedFull.body && (
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Body:</span>
-                      <p className="mt-1 whitespace-pre-wrap">{selectedFull.body}</p>
+                      <p className="mt-1 whitespace-pre-wrap break-words">{selectedFull.body}</p>
                     </div>
                   )}
                 </div>

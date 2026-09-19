@@ -75,12 +75,12 @@ export default function RulesPage() {
     });
   };
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (isLoading) return <div className="p-4 text-muted-foreground sm:p-6">Loading...</div>;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h2 className="text-lg font-semibold">Rules</h2>
           <Badge variant="secondary">{rules.length}</Badge>
         </div>
@@ -103,7 +103,7 @@ export default function RulesPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="space-y-3">
           {rules.map((rule) => (
             <Card key={rule.id} className="cursor-pointer hover:shadow-md" onClick={() => setSelected(rule)}>
@@ -111,8 +111,8 @@ export default function RulesPage() {
                 <div className="flex items-start gap-3">
                   <Shield size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium">{rule.title || rule.name}</p>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <p className="min-w-0 truncate text-sm font-medium">{rule.title || rule.name}</p>
                       <Badge variant={rule.status === "active" ? "success" : "secondary"} className="text-[10px]">{rule.status}</Badge>
                     </div>
                     {rule.condition && <p className="mt-1 text-xs text-muted-foreground"><span className="font-medium">If:</span> {rule.condition}</p>}
